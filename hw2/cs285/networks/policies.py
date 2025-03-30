@@ -1,4 +1,5 @@
 import itertools
+import pdb
 from torch import nn
 from torch.nn import functional as F
 from torch import optim
@@ -59,7 +60,10 @@ class MLPPolicy(nn.Module):
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         """Takes a single observation (as a numpy array) and returns a single action (as a numpy array)."""
         # TODO: implement get_action
-        action = None
+        obs = ptu.from_numpy(obs)
+        pi_a_given_s: torch.distributions.Distribution = self(obs)
+        action = pi_a_given_s.sample()
+        action = ptu.to_numpy(action)
 
         return action
 
@@ -71,11 +75,15 @@ class MLPPolicy(nn.Module):
         """
         if self.discrete:
             # TODO: define the forward pass for a policy with a discrete action space.
-            pass
+            logits = self.logits_net(obs)
+            probs = F.softmax(logits, dim=-1)
+            pi_a_given_s = torch.distributions.Categorical(probs=probs)
+            return pi_a_given_s
         else:
             # TODO: define the forward pass for a policy with a continuous action space.
-            pass
-        return None
+            mean = self.mean_net(obs)
+            pi_a_given_s = torch.distributions.Normal(mean, torch.exp(self.logstd))
+        return pi_a_given_s
 
     def update(self, obs: np.ndarray, actions: np.ndarray, *args, **kwargs) -> dict:
         """Performs one iteration of gradient descent on the provided batch of data."""
@@ -97,7 +105,16 @@ class MLPPolicyPG(MLPPolicy):
         advantages = ptu.from_numpy(advantages)
 
         # TODO: implement the policy gradient actor update.
-        loss = None
+        self.optimizer.zero_grad()
+        pi_a_given_s: torch.distributions.Distribution = self(obs)
+        # we assume that each action dim is independent, so we add the log probs of all action dims
+        log_pi_a_given_s = pi_a_given_s.log_prob(actions)
+        if len(log_pi_a_given_s.shape) == 1 + len(advantages.shape):
+            log_pi_a_given_s = log_pi_a_given_s.sum(dim=-1)
+        assert log_pi_a_given_s.shape == advantages.shape
+        loss = -torch.mean(log_pi_a_given_s * advantages)
+        loss.backward()
+        self.optimizer.step()
 
         return {
             "Actor Loss": ptu.to_numpy(loss),

@@ -1,3 +1,4 @@
+import pdb
 from typing import Sequence, Callable, Tuple, Optional
 
 import torch
@@ -48,9 +49,17 @@ class DQNAgent(nn.Module):
         observation = ptu.from_numpy(np.asarray(observation))[None]
 
         # TODO(student): get the action from the critic using an epsilon-greedy strategy
-        action = ...
+        pdb.set_trace()
+        with torch.no_grad():
+            values = self.critic(observation)
+        
+        probs = torch.ones((self.num_actions), device=ptu.device) * epsilon / (self.num_actions - 1)
+        argmax_action = torch.argmax(values, dim=-1).item()
+        probs[argmax_action] = 1 - epsilon
+        dist = torch.distributions.Categorical(probs=probs)
+        action = dist.sample().item()
 
-        return ptu.to_numpy(action).squeeze(0).item()
+        return action
 
     def update_critic(
         self,
@@ -66,15 +75,15 @@ class DQNAgent(nn.Module):
         # Compute target values
         with torch.no_grad():
             # TODO(student): compute target values
-            next_qa_values = ...
+            next_qa_values = self.target_critic(obs)
 
             if self.use_double_q:
                 raise NotImplementedError
             else:
-                next_action = ...
+                next_action = torch.argmax(next_qa_values, dim=-1)
             
-            next_q_values = ...
-            target_values = ...
+            next_q_values = next_qa_values[next_action]
+            target_values = reward + next_q_values
 
         # TODO(student): train the critic with the target values
         qa_values = ...

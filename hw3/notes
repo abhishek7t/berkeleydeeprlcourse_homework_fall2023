@@ -2,3 +2,13 @@ pip install gym[atari]
 pip install gym[accept-rom-license]
 
 pip install -e .
+
+2.4 Basic Q-Learning
+python cs285/scripts/run_hw3_dqn.py -cfg experiments/dqn/cartpole.yaml --seed 1
+python cs285/scripts/run_hw3_dqn.py -cfg experiments/dqn/cartpole.yaml --seed 2
+
+python cs285/scripts/run_hw3_dqn.py -cfg experiments/dqn/lunarlander.yaml --seed 1
+python cs285/scripts/run_hw3_dqn.py -cfg experiments/dqn/lunarlander.yaml --seed 2
+python cs285/scripts/run_hw3_dqn.py -cfg experiments/dqn/lunarlander.yaml --seed 3
+
+python cs285/scripts/run_hw3_dqn.py -cfg experiments/dqn/lunarlander_doubleq.yaml --seed 1
